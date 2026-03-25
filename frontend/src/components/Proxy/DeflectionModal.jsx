@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Zap, CheckCircle, Loader2, Database, Volume2, ExternalLink, Hash, Brain, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDeflection } from '../../context/DeflectionContext';
-import { getRandomExcuse } from '../../utilis/excuses';
+import { getNextExcuse } from '../../utilis/excuses';
 import { speakExcuse, isVoiceEnrolled } from '../../utilis/audioHelper';
 
 const ALGO_EXPLORER = 'https://lora.algokit.io/testnet/application/756282697';
@@ -39,7 +39,10 @@ const DeflectionModal = ({ relative, onComplete }) => {
   const { t, i18n } = useTranslation();
   const { incrementDeflections, sareeMode } = useDeflection();
   const [step, setStep] = useState(0);
-  const [excuse] = useState(() => getRandomExcuse(relative.type));
+  // getNextExcuse() mirrors the audio queue — same index, same sample
+  const [excuseData] = useState(() => getNextExcuse());
+  const excuse = excuseData.text;
+  const sampleNum = excuseData.sampleNum;
   const [txHash] = useState(() => `PROXY-${Math.random().toString(36).substring(2, 12).toUpperCase()}`);
   const [contentHash] = useState(() => {
     // Generate a fake SHA-256 hash from the excuse text
@@ -67,7 +70,7 @@ const DeflectionModal = ({ relative, onComplete }) => {
       // Cancel again right before speaking excuse (in case relative voice restarted)
       window.speechSynthesis?.cancel();
       await new Promise(r => setTimeout(r, 300)); // Brief pause so cancel takes effect
-      speakExcuse(t(excuse), i18n.language); 
+      speakExcuse(t(excuse), i18n.language); // Sequential queue will pick next sample automatically
       await new Promise(r => setTimeout(r, 3500)); // Give enough time for excuse to be spoken
       setStep(3);
       await new Promise(r => setTimeout(r, 2000));
@@ -116,8 +119,8 @@ const DeflectionModal = ({ relative, onComplete }) => {
                     {steps[step].metric}
                   </span>
                   {isVoiceEnrolled() && step >= 2 && (
-                    <span className="text-[9px] px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full font-bold animate-pulse">
-                      {t('Link Active')}: PROXIED
+                    <span className="text-[9px] px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-bold animate-pulse">
+                      🎙️ Voice Sample {sampleNum}/5 Active
                     </span>
                   )}
                 </div>

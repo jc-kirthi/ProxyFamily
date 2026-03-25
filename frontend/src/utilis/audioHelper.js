@@ -86,60 +86,58 @@ const getVoicesAsync = () => {
   });
 };
 
-/**
- * Speak an excuse using the AI Proxy Voice.
- * Uses a 'Neural Anchor' technique: plays the actual user recording 
- * for 1.5s to verify identity before switching to high-fidelity synthesis.
- */
+// Sequential playback queue — plays samples in order, 1 through 5
+let voiceQueueIndex = 1;
+
+export const resetVoiceQueue = () => { voiceQueueIndex = 1; };
+
+export const playRecordedExcuse = async () => {
+    if (voiceQueueIndex > 5) {
+        console.log('🎬 PROXY: All 5 voice samples have been played.');
+        return false; // No more samples
+    }
+
+    try {
+        const { getAudioSample } = await import('./dbHelper');
+        
+        const key = `user_voice_generic_${voiceQueueIndex}`;
+        const blob = await getAudioSample(key) || await getAudioSample('userVoice');
+        
+        if (!blob) {
+            console.warn(`⚠️ No recording found for queue slot ${voiceQueueIndex}`);
+            return false;
+        }
+
+        console.log(`--- 🛡️ PROXY VOICE: Playing sample ${voiceQueueIndex}/5 ---`);
+        voiceQueueIndex++; // Advance queue for next call
+
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.volume = 1.0;
+        
+        return new Promise((resolve) => {
+            audio.onended = () => { URL.revokeObjectURL(url); resolve(true); };
+            audio.onerror = () => { URL.revokeObjectURL(url); resolve(false); };
+            audio.play().catch(e => { console.error('Audio Error:', e); resolve(false); });
+        });
+    } catch (err) {
+        console.error('Play Recorded Excuse Failed:', err);
+        return false;
+    }
+};
+
 export const speakExcuse = async (text, lang = 'en-IN') => {
-  if (!('speechSynthesis' in window)) {
-    console.warn('Speech synthesis not supported');
-    return;
+  // Always cancel any existing TTS/speech first
+  window.speechSynthesis?.cancel();
+
+  // If voice is enrolled → play the next real recording, NOTHING else
+  if (isVoiceEnrolled()) {
+    await playRecordedExcuse();
+    return; // Done — no TTS fallback ever
   }
 
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
-
-  // 1. Neural Sync Step (Wait for the 'Identity Anchor')
-  console.log('⚡ BIOMETRIC_SYNC: Starting Neural Anchor...');
-  const syncSuccess = await playNeuralLinkSync();
-  
-  if (syncSuccess) {
-    console.log('✅ IDENTITY_VERIFIED: Scaling synthesis engine...');
-  } else {
-    console.log('⚠️ NEURAL_FALLBACK: Using base synthesis profile...');
-  }
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  
-  // Wait for voices to be ready
-  const availableVoices = await getVoicesAsync();
-  
-  // Try to find a voice matching the requested language
-  const langMatch = availableVoices.find(v => v.lang.startsWith(lang.split('-')[0]));
-  
-  // Priority: Language Match -> Indian English Male -> UK Male -> Any English
-  const preferredVoice = langMatch || 
-                        availableVoices.find(v => v.lang.includes('en-IN') && v.name.toLowerCase().includes('male')) || 
-                        availableVoices.find(v => v.lang.includes('en-IN')) || 
-                        availableVoices.find(v => v.name.includes('Google UK English Male')) || 
-                        availableVoices.find(v => v.lang.includes('en-GB')) ||
-                        availableVoices.find(v => v.lang.includes('en')) ||
-                        availableVoices[0];
-  
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
-    console.log(`🎙️ CLONED_PROFILE_ALGO: Active (${preferredVoice.name})`);
-  }
-
-  // Tuned for confidence and authority
-  utterance.pitch = 1.05;
-  utterance.rate = 0.95;
-  utterance.lang = lang; 
-  utterance.volume = 1.0;
-
-  window.speechSynthesis.speak(utterance);
-  return utterance;
+  // Only use TTS if user has never recorded their voice at all
+  console.log('ℹ️ No voice enrolled — showing text only (no audio)');
 };
 
 /**

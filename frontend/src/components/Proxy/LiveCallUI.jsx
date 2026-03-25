@@ -9,25 +9,16 @@ import { speakAsRelative, isVoiceEnrolled } from '../../utilis/audioHelper';
 // Multi-turn relative dialogue scripts
 const RELATIVE_SCRIPTS = {
   aunty: [
-    { text: "Beta, why are you not picking up? Is this how I raised you?", emotion: "Guilt Trip", intensity: 87, delay: 2000 },
-    { text: "Your cousin Rahul just got promoted at Google. What are YOU doing?", emotion: "Comparison Mode", intensity: 94, delay: 6000 },
-    { text: "When are you getting married? Mrs. Sharma's daughter is still available...", emotion: "Marriage Pressure", intensity: 91, delay: 11000 },
-    { text: "Are you even eating properly? You look so thin on WhatsApp DP.", emotion: "Passive Concern", intensity: 72, delay: 16000 },
+    { text: "Beta, I heard you're still not married. Is it because your standards are too high or your vibe is just mid?", emotion: "Critical Damage", intensity: 98, delay: 2000 },
   ],
   uncle: [
-    { text: "Beta, what is your salary package? Just curious only...", emotion: "Financial Probe", intensity: 88, delay: 2000 },
-    { text: "In my time, we had real jobs. Not this computer-shomputer business.", emotion: "Generational Flex", intensity: 79, delay: 7000 },
-    { text: "Your father was telling me you spent ₹500 on coffee. FIVE HUNDRED RUPEES.", emotion: "Financial Shock", intensity: 96, delay: 12000 },
+    { text: "Beta, I heard you're 'working' on a computer. In my day, real men had real jobs. Why are you so lazy?", emotion: "Generational Shade", intensity: 96, delay: 2000 },
   ],
   cousin: [
-    { text: "Bro when are you coming home? Everyone is asking about you only.", emotion: "Social Pressure", intensity: 65, delay: 2000 },
-    { text: "Aunty was saying you have a girlfriend. Is it true? TELL ME.", emotion: "Gossip Extraction", intensity: 82, delay: 7000 },
-    { text: "Also can you help me with my Java assignment? It's due tomorrow.", emotion: "Exploitation", intensity: 71, delay: 12000 },
+    { text: "LMAO bro, I saw your LinkedIn. 'Master of Deflections'? More like 'Master of Unemployment'. Need a loan?", emotion: "Financial Disrespect", intensity: 94, delay: 2000 },
   ],
   grandma: [
-    { text: "Chinna, have you eaten? I made your favorite dosa but you never come home.", emotion: "Emotional Blackmail", intensity: 99, delay: 2000 },
-    { text: "Your grandfather's photo is looking at me and asking where you are.", emotion: "Supernatural Guilt", intensity: 97, delay: 7000 },
-    { text: "I told the priest to pray for your marriage. He said next month is auspicious.", emotion: "Divine Intervention", intensity: 95, delay: 12000 },
+    { text: "Chinna, why you don't come home? I made Ghee Roast but you are always on 'Zoom' like a digital ghost.", emotion: "Ancient Guilt", intensity: 99, delay: 2000 },
   ]
 };
 
@@ -316,10 +307,10 @@ const LiveCallUI = ({ relative, onClose }) => {
             setShowDeflection(true);
           }}
           className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-2xl ${
-            sareeMode
-              ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-500/20'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
-          }`}
+  sareeMode
+    ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-500/20'
+    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
+}`}
         >
           <Shield size={20} />
           <span>{sareeMode ? t('Respectfully Decline') : t('Deploy Proxy Shield')}</span>

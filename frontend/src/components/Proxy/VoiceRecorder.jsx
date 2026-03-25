@@ -4,8 +4,12 @@ import { Mic, MicOff, CheckCircle, Activity, X, Volume2, Loader2, Fingerprint } 
 import { useDeflection } from '../../context/DeflectionContext';
 import { toast } from 'react-hot-toast';
 
-const SAMPLE_SENTENCES = [
-  "Hello. I'm currently stuck in a very important meeting with international clients. I will call you back as soon as I am free."
+const VOICE_SAMPLES = [
+  { id: 'generic_1', text: "I'm currently prioritizing my peace over this conversation. Pls respect the boundaries. Slay!" },
+  { id: 'generic_2', text: "Your feedback is being archived for a time when I actually asked for it. Stay blessed!" },
+  { id: 'generic_3', text: "I'm in my 'Main Character' era and this side-quest doesn't fit the plot. Brb!" },
+  { id: 'generic_4', text: "Low aura move, family. Let's keep the energy positive or not at all. Period." },
+  { id: 'generic_5', text: "I'm literally in the middle of a life-changing event. My AI proxy will take it from here. Cya!" }
 ];
 
 const VoiceRecorder = ({ onComplete, onClose }) => {
@@ -14,9 +18,10 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
+  const [activeSampleIndex, setActiveSampleIndex] = useState(0);
+  const [recordedSamples, setRecordedSamples] = useState({}); // { id: blob }
   const [voiceProfile, setVoiceProfile] = useState(null);
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
-  const [sentence] = useState(() => SAMPLE_SENTENCES[Math.floor(Math.random() * SAMPLE_SENTENCES.length)]);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -81,7 +86,13 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(blob);
+        const sampleId = VOICE_SAMPLES[activeSampleIndex].id;
+        
+        setRecordedSamples(prev => ({
+          ...prev,
+          [sampleId]: blob
+        }));
+        
         setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach(t => t.stop());
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -91,13 +102,12 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
       setIsRecording(true);
       setPhase('recording');
 
-      // Auto-stop after 8 seconds
+      // Auto-stop after 10 seconds
       setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-          setIsRecording(false);
+          stopRecording();
         }
-      }, 8000);
+      }, 10000);
     } catch (err) {
       console.error('Mic access denied:', err);
     }
@@ -107,6 +117,17 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      
+      // Move to next sample or analysis
+      if (activeSampleIndex < VOICE_SAMPLES.length - 1) {
+        setTimeout(() => {
+          setPhase('intro');
+          setActiveSampleIndex(prev => prev + 1);
+          setAudioUrl(null);
+        }, 1500);
+      } else {
+        setPhase('review');
+      }
     }
   };
 
@@ -123,12 +144,9 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
         const profile = {
           pitch: (80 + Math.random() * 120).toFixed(1),
           rate: (0.8 + Math.random() * 0.4).toFixed(2),
-          timbre: ['Warm Baritone', 'Clear Tenor', 'Smooth Alto', 'Rich Bass'][Math.floor(Math.random() * 4)],
-          matchScore: (93 + Math.random() * 5).toFixed(1),
-          biomarkers: Math.floor(127 + Math.random() * 50),
-          spectralFingerprint: Array.from({ length: 16 }, () =>
-            Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
-          ).join(':'),
+          matchScore: (98 + Math.random() * 2).toFixed(1), // HIGHER FOR REAL VOICE
+          biomarkers: Math.floor(256 + Math.random() * 50),
+          samplesCaptured: VOICE_SAMPLES.length,
           recorded: true,
           recordedAt: new Date().toISOString(),
         };
@@ -136,14 +154,17 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
         setVoiceProfile(profile);
         // Save to localStorage
         localStorage.setItem('proxyVoiceProfile', JSON.stringify(profile));
-        if (audioBlob) {
-          // Store audio URL for playback reference
-          localStorage.setItem('proxyVoiceRecorded', 'true');
-          // Save actual audio to IndexedDB for cross-session playback
-          import('../../utilis/dbHelper').then(({ saveAudioSample }) => {
-            saveAudioSample('userVoice', audioBlob).catch(console.error);
+        localStorage.setItem('proxyVoiceRecorded', 'true');
+
+        // Save ALL samples to IndexedDB
+        import('../../utilis/dbHelper').then(({ saveAudioSample }) => {
+          Object.entries(recordedSamples).forEach(([id, blob]) => {
+            saveAudioSample(`user_voice_${id}`, blob).catch(console.error);
           });
-        }
+          // Also save a master sample for generic use
+          const firstBlob = Object.values(recordedSamples)[0];
+          if (firstBlob) saveAudioSample('userVoice', firstBlob).catch(console.error);
+        });
         setPhase('done');
       }
       setAnalyzeProgress(Math.min(progress, 100));
@@ -186,8 +207,10 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
                 <p className="text-slate-500 text-xs uppercase tracking-widest font-bold">Protocol v4.2 Active</p>
               </div>
               <div className="p-6 bg-slate-800/50 rounded-3xl border border-slate-700/50 shadow-inner">
-                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-3 opacity-70">Read this sentence for acoustic mapping:</p>
-                <p className="text-white text-lg font-medium leading-relaxed italic">"{sentence}"</p>
+                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-3 opacity-70">
+                  Phonetic Sample {activeSampleIndex + 1}/{VOICE_SAMPLES.length}:
+                </p>
+                <p className="text-white text-lg font-medium leading-relaxed italic">"{VOICE_SAMPLES[activeSampleIndex].text}"</p>
               </div>
               <button
                 onClick={startRecording}
@@ -230,7 +253,7 @@ const VoiceRecorder = ({ onComplete, onClose }) => {
                 className="w-full h-20 rounded-xl bg-slate-800"
               />
 
-              <p className="text-slate-500 text-sm italic">"{sentence}"</p>
+              <p className="text-slate-500 text-sm italic">"{VOICE_SAMPLES[activeSampleIndex].text}"</p>
 
               <button
                 onClick={stopRecording}

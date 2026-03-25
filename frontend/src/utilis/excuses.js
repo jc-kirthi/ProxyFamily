@@ -6,27 +6,35 @@ export const relatives = [
   { id: 5, name: "Mamaji", type: "uncle", relation: "Maternal Uncle", urgency: "high", image: "https://api.dicebear.com/7.x/notionists/svg?seed=Jude" }
 ];
 
+// 5 generic 'Savage but Respectful' excuses — recorded by user in Voice Identity
+const GENERIC_EXCUSES = [
+  "I'm currently prioritizing my peace over this conversation. Pls respect the boundaries. Slay!",
+  "Your feedback is being archived for a time when I actually asked for it. Stay blessed!",
+  "I'm in my 'Main Character' era and this side-quest doesn't fit the plot. Brb!",
+  "Low aura move, family. Let's keep the energy positive or not at all. Period.",
+  "I'm literally in the middle of a life-changing event. My AI proxy will take it from here. Cya!"
+];
+
 export const excuses = {
-  aunty: [
-    "Sorry Aunty, I'm stuck in a tunnel. Network is very poor. Talk soon!",
-    "Aunty, my phone is at 1%. I'll call you after it charges (in 3 days).",
-    "I'm in a very serious blockchain meeting, Aunty. My salary depends on it!",
-    "Aunty, I'm currently identifying as a full-time algorithm. Algorithms don't talk."
-  ],
-  uncle: [
-    "Uncle, I just reached Bangalore. Network is terrible here.",
-    "Uncle, my car broke down on the highway. I'm waiting for the mechanic.",
-    "Uncle, I'm observing a digital fast today for world peace.",
-    "I have a throat infection, Uncle. Doctor said 'No talking to relatives'."
-  ],
-  cousin: [
-    "Bro/Sis, I'm in the middle of a global hackathon. Can't talk!",
-    "I'm currently deflecting your call. Proxy Family rules, sorry!",
-    "I'll call you back when I've found a job that pays more than your dad's expectations."
-  ]
+  aunty: GENERIC_EXCUSES,
+  uncle: GENERIC_EXCUSES,
+  cousin: GENERIC_EXCUSES
+};
+
+// Sequential text queue — mirrors audioHelper voiceQueueIndex (0-indexed)
+let excuseQueueIndex = 0;
+export const resetExcuseQueue = () => { excuseQueueIndex = 0; };
+
+// Returns the next excuse text in order (wraps after 5)
+export const getNextExcuse = () => {
+  const sampleNum = (excuseQueueIndex % GENERIC_EXCUSES.length) + 1; // 1-based
+  const excuse = GENERIC_EXCUSES[excuseQueueIndex % GENERIC_EXCUSES.length];
+  excuseQueueIndex++;
+  return { text: excuse, sampleNum };
 };
 
 export const getRandomExcuse = (type) => {
-  const list = excuses[type] || excuses.aunty;
-  return list[Math.floor(Math.random() * list.length)];
+  const list = excuses[type] || GENERIC_EXCUSES;
+  const index = Math.floor(Math.random() * list.length);
+  return { text: list[index], index };
 };

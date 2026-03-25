@@ -174,11 +174,6 @@ export default function ClientDashboard() {
                  <div className="flex justify-between items-start mb-6">
                     <div>
                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                            project.briefStatus === 'Synced' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
-                          }`}>
-                            {project.briefStatus}
-                          </span>
                           <a 
                             href={project.blockchainId === 'Pending' ? '#' : `https://lora.algokit.io/testnet/application/${project.blockchainId}`}
                             target="_blank" 
